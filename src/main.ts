@@ -5,7 +5,7 @@ type SeatMap = Seat[][];
 const ROWS = 8;
 const COLUMNS = 10;
 
-// Crea una sala vacía de 8 filas por 10 columnas.
+// Crea una sala vacia de 8 filas por 10 columnas.
 function initializeRoom(): SeatMap {
   const room: SeatMap = [];
 
@@ -24,9 +24,13 @@ function initializeRoom(): SeatMap {
 function displayRoom(room: SeatMap): void {
   console.log("\nEstado de la sala: L = libre | X = ocupado");
 
-  let header = "        ";
+  let header = "       |";
   for (let column = 1; column <= COLUMNS; column += 1) {
-    header += ` ${column} `;
+    if (column < 10) {
+      header += ` ${column} |`;
+    } else {
+      header += `${column} |`;
+    }
   }
   console.log(header);
 
@@ -43,10 +47,11 @@ function displayRoom(room: SeatMap): void {
 // Reserva un asiento si las coordenadas son válidas y está libre.
 function reserveSeat(room: SeatMap, row: number, column: number): string {
   if (
+    !Number.isInteger(row) || !Number.isInteger(column) ||
     row < 1 || row > ROWS ||
     column < 1 || column > COLUMNS
   ) {
-    return `Reserva fallida: fila ${row} o columna ${column} fuera de rango.`;
+    return `Reserva fallida: fila ${row} y columna ${column} deben ser enteros entre 1-${ROWS} y 1-${COLUMNS}, respectivamente.`;
   }
 
   if (room[row - 1][column - 1] === 1) {
@@ -58,7 +63,7 @@ function reserveSeat(room: SeatMap, row: number, column: number): string {
 }
 
 // Cuenta los asientos ocupados y disponibles en toda la sala.
-function countSeats(room: SeatMap): { occupied: number; available: number } {
+function countSeats(room: SeatMap): [occupied: number, available: number] {
   let occupied = 0;
   let available = 0;
 
@@ -72,21 +77,17 @@ function countSeats(room: SeatMap): { occupied: number; available: number } {
     }
   }
 
-  return { occupied, available };
+  return [occupied, available];
 }
 
 // Busca el primer par de asientos libres contiguos de una misma fila.
 function findAdjacentSeats(
   room: SeatMap,
-): { row: number; firstColumn: number; secondColumn: number } | null {
+): [row: number, firstColumn: number, secondColumn: number] | null {
   for (let row = 0; row < ROWS; row += 1) {
     for (let column = 0; column < COLUMNS - 1; column += 1) {
       if (room[row][column] === 0 && room[row][column + 1] === 0) {
-        return {
-          row: row + 1,
-          firstColumn: column + 1,
-          secondColumn: column + 2,
-        };
+        return [row + 1, column + 1, column + 2];
       }
     }
   }
@@ -97,34 +98,34 @@ function findAdjacentSeats(
 // Muestra un resumen consistente para cada escenario de prueba.
 function showSummary(room: SeatMap): void {
   const counts = countSeats(room);
-  console.log(`Ocupados: ${counts.occupied} | Disponibles: ${counts.available}`);
+  console.log(`Ocupados: ${counts[0]} | Disponibles: ${counts[1]}`);
   const adjacentSeats = findAdjacentSeats(room);
   if (adjacentSeats) {
     console.log(
-      `Asientos contiguos encontrados: fila ${adjacentSeats.row}, columnas ${adjacentSeats.firstColumn} y ${adjacentSeats.secondColumn}.`,
+      `Asientos contiguos encontrados: fila ${adjacentSeats[0]}, columnas ${adjacentSeats[1]} y ${adjacentSeats[2]}.`,
     );
   } else {
     console.log("No hay asientos contiguos disponibles.");
   }
 }
 
-// Se utiliza una única matriz, modificada progresivamente en los cuatro escenarios.
+// Se utiliza una única matriz, modificada progresivamente en los escenarios.
 const room = initializeRoom();
 
 console.log("ESCENARIO A: sala vacía");
-displayRoom(room);
 showSummary(room);
+displayRoom(room);
 
 console.log("\nESCENARIO B: sala parcialmente ocupada");
 console.log(reserveSeat(room, 1, 1));
 console.log(reserveSeat(room, 2, 2));
 console.log(reserveSeat(room, 4, 3));
 console.log(reserveSeat(room, 1, 1)); // Comprueba que no se reserve dos veces.
-displayRoom(room);
 showSummary(room);
+displayRoom(room);
 
 console.log("\nESCENARIO C: sala casi llena; quedan asientos sueltos");
-// Deja libres únicamente los asientos (fila 1, columnas 3 y 5), que no son contiguos.
+// Prepara la sala para que solo queden libres dos asientos no contiguos.
 for (let row = 1; row <= ROWS; row += 1) {
   for (let column = 1; column <= COLUMNS; column += 1) {
     const isOneOfTheTwoRemainingSeats =
@@ -134,8 +135,8 @@ for (let row = 1; row <= ROWS; row += 1) {
     }
   }
 }
-displayRoom(room);
 showSummary(room);
+displayRoom(room);
 
 console.log("\nESCENARIO D: sala completamente llena");
 for (let row = 0; row < ROWS; row += 1) {
