@@ -80,30 +80,44 @@ function countSeats(room: SeatMap): [occupied: number, available: number] {
   return [occupied, available];
 }
 
-// Busca el primer par de asientos libres contiguos de una misma fila.
+// Devuelve todas las parejas libres de una misma fila, incluidas las solapadas.
 function findAdjacentSeats(
   room: SeatMap,
-): [row: number, firstColumn: number, secondColumn: number] | null {
+): [row: number, firstColumn: number, secondColumn: number][] {
+  const pairs: [row: number, firstColumn: number, secondColumn: number][] = [];
   for (let row = 0; row < ROWS; row += 1) {
     for (let column = 0; column < COLUMNS - 1; column += 1) {
       if (room[row][column] === 0 && room[row][column + 1] === 0) {
-        return [row + 1, column + 1, column + 2];
+        pairs.push([row + 1, column + 1, column + 2]);
       }
     }
   }
 
-  return null;
+  return pairs;
 }
 
 // Muestra un resumen consistente para cada escenario de prueba.
 function showSummary(room: SeatMap): void {
   const counts = countSeats(room);
   console.log(`Ocupados: ${counts[0]} | Disponibles: ${counts[1]}`);
+  if (counts[1] === 0) {
+    console.log("Estado: sala completamente llena.");
+  } else if (counts[1] <= 5) {
+    console.log("Estado: sala casi llena.");
+  } else if (counts[0] === 0) {
+    console.log("Estado: sala vacía.");
+  } else {
+    console.log("Estado: sala parcialmente ocupada.");
+  }
   const adjacentSeats = findAdjacentSeats(room);
-  if (adjacentSeats) {
-    console.log(
-      `Asientos contiguos encontrados: fila ${adjacentSeats[0]}, columnas ${adjacentSeats[1]} y ${adjacentSeats[2]}.`,
-    );
+  if (adjacentSeats.length > 0) {
+    console.log(`Parejas de asientos contiguos disponibles: ${adjacentSeats.length}`);
+    for (let index = 0; index < adjacentSeats.length; index += 1) {
+      const pair = adjacentSeats[index];
+      console.log(
+        `Asientos contiguos encontrados: fila ${pair[0]}, columnas ${pair[1]} y ${pair[2]}.`,
+      );
+    }
   } else {
     console.log("No hay asientos contiguos disponibles.");
   }
@@ -118,19 +132,28 @@ displayRoom(room);
 
 console.log("\nESCENARIO B: sala parcialmente ocupada");
 console.log(reserveSeat(room, 1, 1));
-console.log(reserveSeat(room, 2, 2));
-console.log(reserveSeat(room, 4, 3));
+// Combina asientos sueltos con parejas y un grupo de tres libres.
+for (let row = 1; row <= ROWS; row += 1) {
+  for (let column = 1; column <= COLUMNS; column += 1) {
+    const keepAvailable = column === 3 || column === 5 ||
+      (row % 2 === 0 && column === 6) ||
+      (row === 2 && column === 7);
+    if (room[row - 1][column - 1] === 0 && !keepAvailable) {
+      reserveSeat(room, row, column);
+    }
+  }
+}
 console.log(reserveSeat(room, 1, 1)); // Comprueba que no se reserve dos veces.
 showSummary(room);
 displayRoom(room);
 
 console.log("\nESCENARIO C: sala casi llena; quedan asientos sueltos");
-// Prepara la sala para que solo queden libres dos asientos no contiguos.
+// Conserva cinco asientos libres aislados, sin liberar reservas anteriores.
 for (let row = 1; row <= ROWS; row += 1) {
   for (let column = 1; column <= COLUMNS; column += 1) {
-    const isOneOfTheTwoRemainingSeats =
-      row === 1 && (column === 3 || column === 5);
-    if (room[row - 1][column - 1] === 0 && !isOneOfTheTwoRemainingSeats) {
+    const keepAvailable = (row <= 4 && column === 3) ||
+      (row === 1 && column === 5);
+    if (room[row - 1][column - 1] === 0 && !keepAvailable) {
       reserveSeat(room, row, column);
     }
   }
